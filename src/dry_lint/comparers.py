@@ -49,8 +49,10 @@ class TfidfComparer:
     ) -> list[tuple[Function, float]]:
         own = self.position.get(function.qualname)
         found = []
-        for position, similarity in self.tfidf.similar(function.tokens, exclude={own} if own is not None else set()):
-            if similarity < self.floor(function) or len(found) == k:
+        floor = self.floor(function)
+        excluded = {own} if own is not None else set()
+        for position, similarity in self.tfidf.similar(function.tokens, exclude=excluded, floor=floor):
+            if similarity < floor or len(found) == k:
                 break
             if allowed(self.functions[position]):
                 found.append((self.functions[position], similarity))

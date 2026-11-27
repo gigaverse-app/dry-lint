@@ -103,6 +103,22 @@ each tactic block from the layout of the source, so it does not depend on the st
 proof, and it preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
 
+After building a Lean checkout, use the compiler’s resolved references to find arguments shared by
+three or more declarations. Set `--source-root` to the directory from which Lean module names are
+resolved. This example assumes `src` and Lake’s default output path.
+
+```sh
+lake build
+uvx --from 'dry-lint[lean]>=1,<2' dry-lint lean-proof-families --source-root src \
+  --focus 'src/Lib/Weil/*' --limit 5
+```
+
+A family has the same ordered references at corresponding proof lines in every member. The output
+gives each declaration and its aligned line numbers. `--focus` selects which groups to show while
+retaining matches in other files. Use `--artifact-root` for a custom .ilean directory and
+`--format json` for a report you can compare before and after a refactor. Rebuild after editing the
+sources so their line numbers and the compiler artifacts correspond.
+
 A proof can also be ported to a dependency under a new name. After building the project with Lake,
 run `dry-lint lean-upstream --source-root src --dependency .lake/packages/TauCeti/TauCeti` to
 find upstream docstrings that cite local declarations by qualified name. The JSON report ranks
