@@ -131,7 +131,10 @@ run `dry-lint lean-upstream --source-root src --dependency .lake/packages/TauCet
 find upstream docstrings that cite local theorems, definitions, structures, classes, inductive types
 and named instances by qualified name. The JSON report ranks
 declarations by their source length, gives a file and line for each citation, and counts modules
-without build metadata. Use `--artifact-root` for a nonstandard build directory. A citation may
+without build metadata. Its `files` list adds the cited lines up per file, largest first, so the
+biggest replacements come first. On a project with many open pull requests, save each one's diff
+(`gh pr diff 123 > 123.diff`) and pass `--claimed-diff 123.diff` for each: a declaration is left out
+when a diff already removes a quarter or more of its lines, and `claimed_declarations` counts them. Use `--artifact-root` for a nonstandard build directory. A citation may
 describe a specialization or a theorem the project already uses. Compare the statements and check
 any proposed replacement with Lean.
 

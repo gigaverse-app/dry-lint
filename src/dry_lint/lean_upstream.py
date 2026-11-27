@@ -61,11 +61,34 @@ def local_site(name, coords, lines):
     return None
 
 
-def find_upstream_citations(source_root, artifact_root, dependency_root, min_lines=1):
+def removed_lines(diffs):
+    """The lines each unified diff removes, without indentation, by the path it removes them from."""
+    removed = defaultdict(set)
+    for diff in diffs:
+        path = None
+        rows = diff.read_text(encoding="utf-8", errors="replace").splitlines()
+        for row, following in zip(rows, [*rows[1:], ""], strict=True):
+            # A removed Lean comment also starts with `--- `; a file header is followed by `+++ `.
+            if row.startswith("--- ") and following.startswith("+++ "):
+                path = row[4:].split("\t")[0].removeprefix("a/")
+            elif row.startswith("-") and path and row[1:].strip():
+                removed[path].add(row[1:].strip())
+    return removed
+
+
+def _claimed(path, body, removed):
+    """Whether a diff removes a quarter or more of the declaration's lines, and at least one."""
+    body = [line.strip() for line in body if line.strip()]
+    gone = set().union(*(lines for name, lines in removed.items() if name == path or name.endswith("/" + path)))
+    return 4 * sum(line in gone for line in body) >= max(len(body), 1) and any(line in gone for line in body)
+
+
+def find_upstream_citations(source_root, artifact_root, dependency_root, min_lines=1, claimed_diffs=()):
     if min_lines < 1:
         raise ValueError("min-lines must be positive")
+    removed = removed_lines(claimed_diffs)
     sites = {}
-    built = missing = 0
+    built = missing = claimed = 0
     for path in lean_sources(source_root):
         relative = path.relative_to(source_root)
         artifact = (artifact_root / relative).with_suffix(".ilean")
@@ -82,19 +105,38 @@ def find_upstream_citations(source_root, artifact_root, dependency_root, min_lin
                 continue
             site = local_site(name, coords, lines)
             if site:
-                sites[name] = (relative.as_posix(), *site)
+                sites[name] = (relative.as_posix(), *site, lines[site[0] - 1 : site[0] - 1 + site[1]])
     if not built:
         raise ValueError("No matching .ilean artifacts. Build the project and check the source and artifact roots.")
     citations = dependency_citations(dependency_root, {name.encode() for name in sites})
-    matches = [
-        {
-            "name": name,
-            "path": sites[name][0],
-            "line": sites[name][1],
-            "lines": sites[name][2],
-            "citations": [{"path": p, "line": n} for p, n in sorted(locations)],
-        }
-        for name, locations in citations.items()
-    ]
+    matches = []
+    for name, locations in citations.items():
+        path, line, length, body = sites[name]
+        if removed and _claimed(path, body, removed):
+            claimed += 1
+            continue
+        matches.append(
+            {
+                "name": name,
+                "path": path,
+                "line": line,
+                "lines": length,
+                "citations": [{"path": p, "line": n} for p, n in sorted(locations)],
+            }
+        )
     matches.sort(key=lambda row: (-row["lines"], row["path"], row["line"], row["name"]))
-    return {"built_modules": built, "unbuilt_modules": missing, "declarations": matches}
+    files = defaultdict(lambda: {"lines": 0, "declarations": 0, "cited_in": set()})
+    for row in matches:
+        entry = files[row["path"]]
+        entry["lines"] += row["lines"]
+        entry["declarations"] += 1
+        entry["cited_in"].update(citation["path"] for citation in row["citations"])
+    ranked = [{"path": path, **entry, "cited_in": sorted(entry["cited_in"])} for path, entry in files.items()]
+    ranked.sort(key=lambda row: (-row["lines"], row["path"]))
+    return {
+        "built_modules": built,
+        "unbuilt_modules": missing,
+        "claimed_declarations": claimed,
+        "files": ranked,
+        "declarations": matches,
+    }
