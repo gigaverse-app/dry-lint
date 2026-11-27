@@ -22,6 +22,8 @@ To set dry-lint up in a repository with a coding agent, give the agent this one 
 
 - [Why dry-lint](https://dry-lint.readthedocs.io/en/latest/docs/why/): the problem, the evidence, and how it differs from copy-paste detectors
 - [Design](https://dry-lint.readthedocs.io/en/latest/docs/design/): the pipeline, the verdict store, and why adopters always bring their own keys
+- [Mathematical engineering: the Riemann Hypothesis proof](https://dry-lint.readthedocs.io/en/latest/docs/case-studies/riemann-proof/): what two days on a 300,000-line Lean proof found, what was withdrawn, and what it changed for every language
+- [Find lines repeated inside functions](https://dry-lint.readthedocs.io/en/latest/docs/blocks/): `dry-lint blocks`, for Python, TypeScript, Luau and Lean, with no judge
 - [What the pull request comment shows](https://dry-lint.readthedocs.io/en/latest/docs/comment-preview/)
 
 ## Optional
