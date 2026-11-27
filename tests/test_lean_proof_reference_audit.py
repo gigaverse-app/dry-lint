@@ -135,3 +135,44 @@ def test_family_ranking_prefers_the_shared_core_with_more_lines():
     assert family.shared_lines == 10
     assert family.members == (0, 1, 2)
     assert not rank_families([Alignment(0, 1, full), Alignment(0, 2, packed)])
+
+
+def test_reference_audit_reports_disjoint_fragments_inside_a_proof(tmp_path, capsys):
+    shared = [f"Example.fact{i}" for i in range(12)]
+    first = shared[:6] + ["Example.first_only"] + shared[6:]
+    second = shared[:9] + ["Example.second_only"] + shared[9:]
+    write_module(tmp_path, "Repeated", first + ["Example.between"] * 4 + second, "local")
+    write_module(tmp_path, "Single", first + ["Example.no_match"] * 9, "single")
+    write_module(tmp_path, "SameSymbol", ["Example.common"] * 25, "common")
+
+    audit["main"]([str(tmp_path / "src"), str(tmp_path / "build"), "--within-proof"])
+    report = json.loads(capsys.readouterr().out)
+
+    assert report["analyzed_proofs"] == 3
+    assert report["matches"] == [
+        {
+            "score": 12.0,
+            "shared_lines": 12,
+            "left": {"path": "Repeated.lean", "name": "Repeated", "start": 2, "end": 14},
+            "right": {"path": "Repeated.lean", "name": "Repeated", "start": 19, "end": 31},
+            "references": [[i + 2 + (i >= 6), i + 19 + (i >= 9), name] for i, name in enumerate(shared)],
+        }
+    ]
+
+
+@pytest.mark.parametrize(("right_start", "size"), [(7, 8), (18, 8), (30, 6)])
+def test_reference_audit_rejects_overlapping_sparse_or_small_fragments(right_start, size):
+    from dry_lint.lean_proof_references import Proof
+
+    proof = Proof("Example.lean", "example", 1, 40, [])
+    rows = []
+    for i, line in enumerate(range(1, 3 * size, 3)):
+        name = f"Example.fact{i}"
+        rows.append(((line, 0, name), (right_start + i, 0, name)))
+    assert audit["fragment_match"](proof, rows) is None
+
+
+def test_reference_windows_ignores_repeated_triples_on_the_same_line():
+    names = ["Example.a", "Example.b", "Example.c"] * 2
+    refs = [(1, column, name) for column, name in enumerate(names)]
+    assert audit["reference_windows"](refs, names) == []
