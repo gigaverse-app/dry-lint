@@ -719,3 +719,22 @@ and `Statements`. Dry-lint matched `tiedCocycles` in a six-module group outside 
 inside it. The class-valued bounds in that group applied the cocycle bounds and translated them to classes.
 The audit surfaced the whole alternative route for review from that one pair. The resulting
 [proof PR](https://github.com/leanprover-community/riemann-hypothesis/pull/9409) proposes removing those six modules.
+
+## Lean proof reference audit
+
+When two arguments use different local names or tactics, their references to the same Lean declarations
+can still line up. Build the checkout, then run the audit from the dry-lint repository.
+
+```sh
+uv run --extra lean python scripts/audit_lean_proof_references.py \
+  ../proof/src ../proof/.lake/build/lib/lean
+```
+
+The audit uses dry-lint's declaration ranges and the resolved names from version 6 `.ilean` files. It
+compares longer `:= by` proofs, seeds pairs with shared triples of references, and ranks them by how
+many lines contain shared references in order. The JSON includes the names and line numbers to inspect.
+
+On the 802-module Riemann Hypothesis snapshot at `7c4ccbd6`, the audit ranked 245 pairs from 3,269 eligible
+proofs in 22 seconds. Its top pair was the Greenberg–Wiles arguments that choose distinct primes with
+prescribed Frobenius elements. Both now call one finite-family form of Chebotarev in
+[Riemann #9428](https://github.com/leanprover-community/riemann-hypothesis/pull/9428).
