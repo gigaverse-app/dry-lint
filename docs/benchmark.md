@@ -771,8 +771,9 @@ to focus on one development.
 uv run --extra lean python scripts/rank_lean_rewrites.py ../proof/src ../proof/.lake/build/lib/lean
 ```
 
-The score counts how often a rule in a parsed `simp only` or `simp_all only` list recurs in another
-list in the same declaration. Each rule counts once per list. The JSON report gives the call sites
+The score counts how often a rule in a `simp only` or `simp_all only` list recurs in another
+list in the same declaration. Each rule counts once per list. The lists are read from the source text
+with comments and strings masked, so a list the static grammar cannot parse still counts. The JSON report gives the call sites
 to compare and counts missing build artifacts. Similar rewrite lists can serve different arguments,
 so the score measures repetition, not removable lines.
 
