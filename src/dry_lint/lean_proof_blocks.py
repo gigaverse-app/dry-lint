@@ -1,4 +1,4 @@
-"""Find repeated source fragments within Lean tactic proofs, including recovered proof ranges."""
+"""Find repeated source fragments within Lean tactic proofs."""
 
 import re
 from collections import defaultdict
@@ -6,15 +6,11 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from tree_sitter import Query, QueryCursor
-
 from dry_lint.functions import dedent_lines, tracked_files
-from dry_lint.lean import LeanExtractor
+from dry_lint.lean import BRACKETS, LeanExtractor, LeanSource, read_source
 
-_COMMAND_START = re.compile(
-    r"^\s*(?:(?:@\[[^\n]*?\]|private|protected|public|noncomputable|local|scoped|unsafe|partial)\s+)*"
-    r"(?:lemma|theorem|def|abbrev|opaque|instance|example|section|namespace|end)\b"
-)
+_STEP = re.compile(rf"\bby\b|[{re.escape(''.join(BRACKETS))}]")
+_BY_ENDS_LINE = re.compile(r"\bby\s*$")
 
 
 @dataclass(frozen=True)
@@ -29,51 +25,76 @@ class ProofBlock:
         return self.anchors or self.code
 
 
-def _proof_lines(extractor: LeanExtractor, query: Query, source: str) -> Iterator[tuple[int, list[str]]]:
-    tree = extractor.parser.parse(source.encode("utf-8"))
-    captures = QueryCursor(query).captures(tree.root_node)
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
+
+
+def _opens_proof(line: str) -> bool:
+    """Whether a `by` is still open where the line ends, rather than closed by a bracket around it."""
+    depth = 0
+    opened = None
+    for step in _STEP.finditer(line):
+        if step.group() == "by":
+            opened = depth if opened is None else opened
+        elif step.group() in BRACKETS[0]:
+            depth += 1
+        else:
+            depth -= 1
+            if opened is not None and depth < opened:
+                opened = None
+    return opened is not None
+
+
+def _proof_rows(lean: LeanSource, code: list[str]) -> Iterator[int]:
+    """Rows of tactic blocks, by Lean's layout rule, within the command that opens each block."""
+    for command in lean.commands:
+        first, last = lean.line(command.start) - 1, lean.line(command.end) - 1
+        row = first
+        while row <= last:
+            opening = code[row]
+            row += 1
+            if "by" not in opening or not _opens_proof(opening):
+                continue
+            block = next((r for r in range(row, last + 1) if code[r].strip()), None)
+            if block is None:
+                break
+            # The steps after a line that ends with `by` share a column. After `by step`, deeper lines continue it.
+            column = _indent(code[block]) if _BY_ENDS_LINE.search(opening) else _indent(opening) + 1
+            if column <= _indent(code[first]):
+                continue
+            while row <= last and (not code[row].strip() or _indent(code[row]) >= column):
+                if code[row].strip():
+                    yield row
+                row += 1
+
+
+def _proof_lines(source: str) -> Iterator[tuple[int, list[str]]]:
+    lean = read_source(source)
     rows = source.split("\n")
-    noncode = {
-        row
-        for node in captures.get("noncode", [])
-        if node.start_point.row != node.end_point.row or node.type.endswith("comment")
-        for row in range(node.start_point.row, node.end_point.row + 1)
-    }
-    # Nested by nodes can cover the same lines. Enumerate each location once.
-    previous_end = 0
-    for proof in sorted(captures.get("proof", []), key=lambda node: (node.start_byte, -node.end_byte)):
-        start = max(previous_end, proof.start_point.row + 1)
-        end = proof.end_point.row
-        if end < len(rows) and proof.end_point.column >= len(rows[end].rstrip().encode("utf-8")):
-            end += 1
-        if proof.has_error:
-            # Recovery can swallow the signature of a later declaration into this by node.
-            end = next(
-                (row for row in range(start, end) if row not in noncode and _COMMAND_START.match(rows[row])), end
-            )
-        if start >= end:
-            continue
-        previous_end = end
-        run = []
-        for row in range(start, end):
-            if row in noncode or not rows[row].strip() or rows[row].lstrip().startswith("--"):
-                if run:
-                    yield row - len(run) + 1, run
-                run = []
-            else:
-                run.append(rows[row].rstrip())
-        if run:
-            yield end - len(run) + 1, run
+    # A row that only holds a comment is blank in the structural copy and ends a run, as a blank line does.
+    proof = set(_proof_rows(lean, lean.structure.split("\n")))
+    for start, end in lean.literals:
+        if "\n" in source[start:end]:
+            proof.difference_update(range(lean.line(start) - 1, lean.line(end - 1)))
+    first = 0
+    run: list[str] = []
+    for row in sorted(proof):
+        if run and row - 1 not in proof:
+            yield first + 1, run
+            run = []
+        if not run:
+            first = row
+        run.append(rows[row].rstrip())
+    if run:
+        yield first + 1, run
 
 
-def _source_runs(
-    root: Path, include: list[str], exclude: list[str], extractor: LeanExtractor, query: Query
-) -> Iterator[tuple[str, int, list[str]]]:
+def _source_runs(root: Path, include: list[str], exclude: list[str]) -> Iterator[tuple[str, int, list[str]]]:
     for path in tracked_files(root, include, exclude):
         file = root / path
         if file.suffix != ".lean" or not file.is_file():
             continue
-        for start, run in _proof_lines(extractor, query, file.read_text(encoding="utf-8")):
+        for start, run in _proof_lines(file.read_text(encoding="utf-8")):
             yield path, start, run
 
 
@@ -217,18 +238,11 @@ def find_proof_blocks(
     if max_gap_lines < 0:
         raise ValueError("--max-gap-lines must be nonnegative")
     try:
-        extractor = LeanExtractor()
+        LeanExtractor()  # The command is part of the Lean extra, whose absence gets the same message everywhere.
     except ImportError as error:
         raise ValueError(str(error)) from error
 
-    query = Query(
-        extractor.parser.language,
-        """
-        (by) @proof
-        [(block_comment) (doc_comment) (module_doc_comment) (str_lit) (raw_string)] @noncode
-        """,
-    )
-    runs = _source_runs(root, include, exclude, extractor, query)
+    runs = _source_runs(root, include, exclude)
     if max_lines is None and not max_gap_lines:
         matches = sorted(_find_groups(runs, lines, min_shared_chars, allow_one_line_difference), key=_group_order)
     else:

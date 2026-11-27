@@ -98,8 +98,9 @@ and reports source ranges without running Lean or a judge. Use `--lines 5` for f
 or `--allow-one-line-difference` when a line between shared lines has changed. Use `--max-lines 8`
 to compare lengths from `--lines` up to eight, rank by repeated lines across disjoint copies, and
 hide smaller matches already covered by a longer match. Use `--lines 4 --max-gap-lines 3` to
-find two shared two-line anchors separated by up to three different lines per copy. The scanner uses
-proof ranges recognized by the static grammar and preserves identifiers and relative indentation.
+find two shared two-line anchors separated by up to three different lines per copy. The scanner reads
+each tactic block from the layout of the source, so it does not depend on the static grammar parsing the
+proof, and it preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
 
 **Building with Lua or Luau for Roblox?** Enable the opt-in Luau parser for `.lua` and `.luau` files with

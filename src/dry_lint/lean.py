@@ -15,6 +15,7 @@ _ID_ALNUM = _ID_FIRST + "0-9₀-₉ₐ-ₜᵢ-ᵪⱼ"
 _NAME_PART = f"(?:«[^»\n]*»|[{_ID_FIRST}][{_ID_ALNUM}'!?]*)"
 _NAME = f"{_NAME_PART}(?:\\.{_NAME_PART})*"
 _OPENERS, _CLOSERS = "([{⟨⦃⟦⟪", ")]}⟩⦄⟧⟫"
+BRACKETS = (_OPENERS, _CLOSERS)
 
 # Text that can hide a keyword or a bracket. A prime after an identifier is not a character literal.
 _OPAQUE = re.compile(
