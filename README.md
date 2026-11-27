@@ -104,6 +104,10 @@ each tactic block from the layout of the source, so it does not depend on the st
 proof, and it preserves identifiers and relative indentation.
 Lean itself remains the authority on whether two proofs can share a lemma.
 
+For repeated structure constructions, run `dry-lint lean-constructors --source-root src`. The
+JSON report groups declarations that fill in the same fields and repeat at least two assignments.
+It works directly from source. See the [Witt splitting example](docs/benchmark.md#finding-repeated-lean-record-constructions).
+
 After building a Lean checkout, use the compiler’s resolved references to find arguments shared by
 three or more declarations. Set `--source-root` to the directory from which Lean module names are
 resolved. This example assumes `src` and Lake’s default output path.
