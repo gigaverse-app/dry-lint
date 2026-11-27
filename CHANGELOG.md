@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/gigaverse-app/dry-lint/compare/v1.15.1...v1.16.0) (2026-11-27)
+
+
+### Features
+
+* **lean:** recover bounded declarations with unsupported syntax ([a6fcd42](https://github.com/gigaverse-app/dry-lint/commit/a6fcd42c30c3cff899aa36fee6fc4e70976d79e2))
+
 ## [1.15.1](https://github.com/gigaverse-app/dry-lint/compare/v1.15.0...v1.15.1) (2026-11-26)
 
 
