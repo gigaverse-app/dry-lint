@@ -202,8 +202,8 @@ def ranked_groups(
         groups = set()
         for length in range(lines, min(max_lines, max((len(run) for _, _, run in runs), default=0)) + 1):
             groups.update(find_gapped_groups(runs, length, min_shared_chars, max_gap_lines))
-            if allow_one_line_difference:
-                groups.update(find_groups(runs, length, min_shared_chars, allow_one_line_difference))
+            # A gap may be empty: copies that agree on every line are found here.
+            groups.update(find_groups(runs, length, min_shared_chars, allow_one_line_difference))
     else:
         groups = _longest_groups(runs, lines, min_shared_chars, allow_one_line_difference, max_lines)
     return prioritize_reuse(groups)

@@ -1,6 +1,7 @@
 """Find repeated source fragments within Lean tactic proofs."""
 
 import re
+from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -106,7 +107,15 @@ def find_proof_blocks(
 
     runs = _source_runs(root, include, exclude)
     if max_lines is None and not max_gap_lines:
-        matches = sorted(find_groups(runs, lines, min_shared_chars, allow_one_line_difference), key=group_order)
+        groups = find_groups(runs, lines, min_shared_chars, allow_one_line_difference)
+        # Copies that agree on every line also match with a differing line. Report them once, with the others.
+        containing = defaultdict(list)
+        for group in groups:
+            containing[group[0]].append(set(group))
+        matches = sorted(
+            (group for group in groups if not any(set(group) < other for other in containing[group[0]])),
+            key=group_order,
+        )
     else:
         matches = ranked_groups(
             list(runs),
