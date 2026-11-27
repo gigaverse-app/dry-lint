@@ -105,6 +105,26 @@ def test_blocks_allows_one_differing_line_and_gaps(tmp_path, capsys):
     assert "a.py:2-6\n" in out and "b.py:2-7\n" in out and "record.stamp()" in out
 
 
+def test_blocks_with_a_gap_still_reports_copies_without_one(tmp_path, capsys):
+    repo = Repo(tmp_path / "project")
+    body = """
+    def {name}(session, record):
+        session.begin(isolation="serializable", read_only=False)
+        session.lock(record.table, record.key, wait_seconds=5)
+        session.write(record.table, record.key, record.payload)
+        session.commit(wait_for_replicas=True, timeout_seconds=30)
+    """
+    repo.write("a.py", body.format(name="first"))
+    repo.write("b.py", body.format(name="second"))
+    repo.commit()
+    command = ["blocks", "--root", str(repo.root), "--lines", "4"]
+    assert main(command) == 0
+    exact = capsys.readouterr().out
+    assert exact.startswith("Found 1 repeated blocks.\n\na.py:2-5\nb.py:2-5\n")
+    assert main([*command, "--max-gap-lines", "2"]) == 0
+    assert capsys.readouterr().out == exact
+
+
 def test_blocks_reads_typescript_and_selected_extractors(tmp_path, capsys):
     repo = Repo(tmp_path / "project")
     body = """

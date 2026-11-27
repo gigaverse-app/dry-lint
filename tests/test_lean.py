@@ -695,6 +695,47 @@ def test_lean_proof_blocks_match_anchors_across_unequal_gaps(tmp_path, lean, cap
     assert "--max-gap-lines must be nonnegative" in capsys.readouterr().err
 
 
+def test_lean_proof_blocks_with_a_gap_still_report_copies_without_one(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    proof = """theorem {name} (proofOfTheThing : True) : True := by
+  have first : True := proofOfTheThing
+  have second : True := {second}
+  have third : True := second
+  exact third
+"""
+    repo.write("A.lean", proof.format(name="a", second="first"))
+    repo.write("B.lean", proof.format(name="b", second="first"))
+    repo.commit()
+    command = ["lean-proof-blocks", "--root", str(repo.root), "--lines", "4"]
+    assert main(command) == 0
+    exact = capsys.readouterr().out
+    assert exact.startswith("Found 1 repeated Lean proof blocks.\n\nA.lean:2\nB.lean:2\n")
+    # A gap of up to two lines includes no gap at all.
+    assert main([*command, "--max-gap-lines", "2"]) == 0
+    assert capsys.readouterr().out == exact
+
+
+def test_lean_proof_blocks_report_a_group_with_a_differing_line_once(tmp_path, lean, capsys):
+    repo = Repo(tmp_path / "project")
+    proof = """theorem {name} (proofOfTheThing : True) : True := by
+  have first : True := proofOfTheThing
+  have second : True := {second}
+  have third : True := second
+  exact third
+"""
+    repo.write("A.lean", proof.format(name="a", second="first"))
+    repo.write("B.lean", proof.format(name="b", second="first"))
+    repo.write("C.lean", proof.format(name="c", second="id first"))
+    repo.commit()
+    command = ["lean-proof-blocks", "--root", str(repo.root), "--lines", "4"]
+    assert main(command) == 0
+    assert capsys.readouterr().out.startswith("Found 1 repeated Lean proof blocks.\n\nA.lean:2\nB.lean:2\n  have")
+    # A and B also match C up to one line. That is one group of three, not a second report of A and B.
+    assert main([*command, "--allow-one-line-difference"]) == 0
+    grouped = capsys.readouterr().out
+    assert grouped.startswith("Found 1 repeated Lean proof blocks.\n\nA.lean:2\n") and "C.lean:2\n" in grouped
+
+
 def test_lean_proof_blocks_gap_cannot_match_overlapping_windows(tmp_path, lean, capsys):
     repo = Repo(tmp_path / "project")
     repo.write("One.lean", "theorem one : True := by\n" + "  skip\n" * 6 + "  trivial\n")
