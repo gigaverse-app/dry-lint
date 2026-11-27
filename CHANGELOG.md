@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.21.0](https://github.com/gigaverse-app/dry-lint/compare/v1.20.0...v1.21.0) (2026-11-27)
+
+
+### Features
+
+* **cli:** find lines repeated inside functions in every language ([#233](https://github.com/gigaverse-app/dry-lint/issues/233)) ([e83e422](https://github.com/gigaverse-app/dry-lint/commit/e83e4221b9a98cea63a1dd5cce41d05fc96666aa))
+* **lean:** find families of repeated record constructions ([#236](https://github.com/gigaverse-app/dry-lint/issues/236)) ([f07ea30](https://github.com/gigaverse-app/dry-lint/commit/f07ea3047c88759a9456f580272e889b8427bffb))
+
+
+### Documentation
+
+* add the mathematical engineering case study on the Riemann Hypothesis proof ([#235](https://github.com/gigaverse-app/dry-lint/issues/235)) ([dc17a39](https://github.com/gigaverse-app/dry-lint/commit/dc17a39c550b0fc72e99c54516fb5dfdb8c681ae))
+
 ## [1.20.0](https://github.com/gigaverse-app/dry-lint/compare/v1.19.0...v1.20.0) (2026-11-27)
 
 
