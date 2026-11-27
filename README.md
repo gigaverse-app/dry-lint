@@ -79,7 +79,7 @@ Set `extractors = ["lean"]` in `.dry-lint/config.toml` to use the same extractor
 On first use the language pack downloads its versioned Lean grammar.
 dry-lint compares the bodies of named theorems, lemmas, definitions and instances. Discovery reads command
 boundaries from the source text, so notation introduced by imports does not hide a declaration.
-Strict scans still report a parse error for a file whose syntax the static grammar cannot parse.
+Strict scans reject a file only when a comment or string is never closed or a command's brackets do not balance.
 Use `--include` to work on one file or a directory without editing the repository configuration.
 Use the same include patterns and extractor when explaining a pair so the scores use the same source scope.
 
