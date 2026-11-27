@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.22.0](https://github.com/gigaverse-app/dry-lint/compare/v1.21.0...v1.22.0) (2026-11-27)
+
+
+### Features
+
+* **blocks:** report exact copies with --max-gap-lines, and a one-line group once ([#237](https://github.com/gigaverse-app/dry-lint/issues/237)) ([0585b18](https://github.com/gigaverse-app/dry-lint/commit/0585b1828e1539ddb605910b7619c6ed4ff0eb99))
+* **cli:** explain a pair that scan --include-same-file reported ([#239](https://github.com/gigaverse-app/dry-lint/issues/239)) ([aa0d787](https://github.com/gigaverse-app/dry-lint/commit/aa0d787beb0fdf961173832e76c973b54f836031))
+* **lean:** include private proofs, large families and cited types in the reference commands ([#238](https://github.com/gigaverse-app/dry-lint/issues/238)) ([7adc5f8](https://github.com/gigaverse-app/dry-lint/commit/7adc5f8f11f67c66615aed5d32e7f2e9ed8445d7))
+* **lean:** rank upstream replacements per file and leave out ones a diff already removes ([#243](https://github.com/gigaverse-app/dry-lint/issues/243)) ([0c44db8](https://github.com/gigaverse-app/dry-lint/commit/0c44db8c0e61ef5ae674975dcbb0ca23e9e16cf3))
+* **scripts:** count every simp only list in the rewrite ranking ([#241](https://github.com/gigaverse-app/dry-lint/issues/241)) ([5e1613c](https://github.com/gigaverse-app/dry-lint/commit/5e1613c138647fecc287d351495a13014978a94b))
+
+
+### Bug Fixes
+
+* **scripts:** match the import audit to scan paths, and flag a truncated scan ([#240](https://github.com/gigaverse-app/dry-lint/issues/240)) ([bfb42b3](https://github.com/gigaverse-app/dry-lint/commit/bfb42b3fb038847bcf9f41dafcbeeb683e1c5493))
+
 ## [1.21.0](https://github.com/gigaverse-app/dry-lint/compare/v1.20.0...v1.21.0) (2026-11-27)
 
 
